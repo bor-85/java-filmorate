@@ -12,7 +12,7 @@ public class Film {
     private static final LocalDate MIN_RELEASE_DATE = LocalDate.of(1895, 12, 28);
     private static final int MAX_LENGTH_DESCRIPTION = 200;
 
-    Long id;
+    private Long id;
 
     @NotBlank(message = ERROR_NAME_EMPTY)
     private String name;
