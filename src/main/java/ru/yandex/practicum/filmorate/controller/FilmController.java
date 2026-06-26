@@ -19,6 +19,7 @@ public class FilmController {
     private static final String ERROR_ID_NOT_FOUND = "Не найден фильм с id = ";
 
     private final Map<Long, Film> films = new HashMap<>();
+    private long nextId = 0;
 
     @GetMapping
     public Collection<Film> findAll() {
@@ -31,23 +32,12 @@ public class FilmController {
         log.info("POST /films request: name={}, releaseDate={}, duration={}",
                 film.getName(), film.getReleaseDate(), film.getDuration());
 
-        film.setId(getNextId());
+        long id = ++nextId;
+        film.setId(id);
         // сохраняем новую публикацию в памяти приложения
         films.put(film.getId(), film);
         log.info("POST /films created: id={}, name={}", film.getId(), film.getName());
         return film;
-    }
-
-    // Генерация идентификатора
-    private long getNextId() {
-        long currentMaxId = films.keySet()
-                .stream()
-                .mapToLong(id -> id)
-                .max()
-                .orElse(0);
-        long nextId = currentMaxId + 1;
-        log.debug("Generated nextFilmId={}", nextId);
-        return nextId;
     }
 
     @PutMapping
@@ -65,12 +55,16 @@ public class FilmController {
             throw new NotFoundException(ERROR_ID_NOT_FOUND + newFilm.getId());
         }
 
+        setFilmFields(oldFilm, newFilm);
+
+        log.info("PUT /films updated: id={}, name={}", oldFilm.getId(), oldFilm.getName());
+        return oldFilm;
+    }
+
+    private void setFilmFields(Film oldFilm, Film newFilm) {
         oldFilm.setDescription(newFilm.getDescription());
         oldFilm.setDuration(newFilm.getDuration());
         oldFilm.setName(newFilm.getName());
         oldFilm.setReleaseDate(newFilm.getReleaseDate());
-
-        log.info("PUT /films updated: id={}, name={}", oldFilm.getId(), oldFilm.getName());
-        return oldFilm;
     }
 }

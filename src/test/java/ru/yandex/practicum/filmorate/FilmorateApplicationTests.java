@@ -13,6 +13,9 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import static ru.yandex.practicum.filmorate.validation.FilmValidationMessages.*;
+import static ru.yandex.practicum.filmorate.validation.UserValidationMessages.*;
+
 @SpringBootTest
 class FilmorateApplicationTests {
 
@@ -33,7 +36,7 @@ class FilmorateApplicationTests {
 		Set<ConstraintViolation<User>> violations = validate(user);
 
 		assertTrue(violations.stream().anyMatch(v ->
-				v.getMessage().equals(User.ERROR_LOGIN_EMPTY)));
+				v.getMessage().equals(ERROR_LOGIN_EMPTY)));
 	}
 
 	//Проверка валидации на содержание пробелов в логине
@@ -46,7 +49,7 @@ class FilmorateApplicationTests {
 		Set<ConstraintViolation<User>> violations = validate(user);
 
 		assertTrue(violations.stream().anyMatch(v ->
-				v.getMessage().equals(User.ERROR_LOGIN_CONTAINS_SPACES)));
+				v.getMessage().equals(ERROR_LOGIN_CONTAINS_SPACES)));
 	}
 
 	//Проверка валидации, что mail содержит @
@@ -59,7 +62,7 @@ class FilmorateApplicationTests {
 		Set<ConstraintViolation<User>> violations = validate(user);
 
 		assertTrue(violations.stream().anyMatch(v ->
-				v.getMessage().equals(User.ERROR_INVALID_EMAIL)));
+				v.getMessage().equals(ERROR_INVALID_EMAIL)));
 	}
 
 	//Проверка валидации, что mail не null
@@ -71,7 +74,7 @@ class FilmorateApplicationTests {
 		Set<ConstraintViolation<User>> violations = validate(user);
 
 		assertTrue(violations.stream().anyMatch(v ->
-				v.getMessage().equals(User.ERROR_EMAIL_EMPTY)));
+				v.getMessage().equals(ERROR_EMAIL_EMPTY)));
 	}
 
 	//Проверка валидации, что дата рождения не больше текущей даты
@@ -85,7 +88,7 @@ class FilmorateApplicationTests {
 		Set<ConstraintViolation<User>> violations = validate(user);
 
 		assertTrue(violations.stream().anyMatch(v ->
-				v.getMessage().equals(User.ERROR_BIRTHDAY_TOO_LATE)));
+				v.getMessage().equals(ERROR_BIRTHDAY_TOO_LATE)));
 	}
 
 	//Проверка валидации, что с корректными данными пользователь создается
@@ -115,7 +118,7 @@ class FilmorateApplicationTests {
 		Set<ConstraintViolation<Film>> violations = validate(film);
 
 		assertTrue(violations.stream().anyMatch(v ->
-				v.getMessage().equals(Film.ERROR_NAME_EMPTY)));
+				v.getMessage().equals(ERROR_NAME_EMPTY)));
 	}
 
 	//Проверка валидации, что длина строки описания фильма не более 200 символов
@@ -130,7 +133,7 @@ class FilmorateApplicationTests {
 		Set<ConstraintViolation<Film>> violations = validate(film);
 
 		assertTrue(violations.stream().anyMatch(v ->
-				v.getMessage().equals(Film.ERROR_DESCRIPTION_TOO_LONG)));
+				v.getMessage().equals(ERROR_DESCRIPTION_TOO_LONG)));
 	}
 
 	//Проверка валидации, что длительность фильма - положительное число
@@ -145,7 +148,7 @@ class FilmorateApplicationTests {
 		Set<ConstraintViolation<Film>> violations = validate(film);
 
 		assertTrue(violations.stream().anyMatch(v ->
-				v.getMessage().equals(Film.ERROR_INVALID_DURATION)));
+				v.getMessage().equals(ERROR_INVALID_DURATION)));
 	}
 
 	//Проверка валидации, что дата выпуска фильма не ранее 1895 года
@@ -160,7 +163,7 @@ class FilmorateApplicationTests {
 		Set<ConstraintViolation<Film>> violations = validate(film);
 
 		assertTrue(violations.stream().anyMatch(v ->
-				v.getMessage().equals(Film.ERROR_RELEASEDATE_TOO_EARLY)));
+				v.getMessage().equals(ERROR_RELEASEDATE_TOO_EARLY)));
 	}
 
 	//Проверка валидации, что дата выпуска фильма не может быть пустой
@@ -175,7 +178,7 @@ class FilmorateApplicationTests {
 		Set<ConstraintViolation<Film>> violations = validate(film);
 
 		assertTrue(violations.stream().anyMatch(v ->
-				v.getMessage().equals(Film.ERROR_RELEASEDATE_IS_NULL)));
+				v.getMessage().equals(ERROR_RELEASEDATE_IS_NULL)));
 	}
 
 	//Если данные фильма валидные, то ошибок быть не должно
