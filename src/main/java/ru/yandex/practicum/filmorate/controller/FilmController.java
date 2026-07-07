@@ -3,28 +3,29 @@ package ru.yandex.practicum.filmorate.controller;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.service.FilmService;
+import static ru.yandex.practicum.filmorate.validation.FilmHandleMessages.*;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
 @Slf4j
 @RestController
 @RequestMapping("/films")
 public class FilmController {
-    private static final String ERROR_ID_IS_NULL = "Id должен быть указан";
-    private static final String ERROR_ID_NOT_FOUND = "Не найден фильм с id = ";
+    private final FilmService filmService;
 
-    private final Map<Long, Film> films = new HashMap<>();
-    private long nextId = 0;
+    public FilmController(FilmService filmService) {
+        this.filmService = filmService;
+    }
 
     @GetMapping
     public Collection<Film> findAll() {
-        log.debug("GET /films -> count={}", films.size());
-        return films.values();
+        log.debug("GET /films");
+        var result = filmService.findAll();
+        log.debug("GET /films -> {} films", result.size());
+        return result;
     }
 
     @PostMapping
@@ -32,12 +33,44 @@ public class FilmController {
         log.info("POST /films request: name={}, releaseDate={}, duration={}",
                 film.getName(), film.getReleaseDate(), film.getDuration());
 
-        long id = ++nextId;
-        film.setId(id);
-        // сохраняем новую публикацию в памяти приложения
-        films.put(film.getId(), film);
+        Film created = filmService.add(film);
         log.info("POST /films created: id={}, name={}", film.getId(), film.getName());
-        return film;
+        return created;
+    }
+
+    @GetMapping("/{id}")
+    public Film findById(@PathVariable Long id) {
+        log.debug("GET /films/{}", id);
+        return filmService.findById(id);
+    }
+
+    //PUT /films/{id}/like/{userId}
+    @PutMapping("/{id}/like/{userId}")
+    public void addlike(@PathVariable Long id, @PathVariable Long userId) {
+        log.debug("PUT /films/{}/like/{}", id, userId);
+        filmService.addLike(id, userId);
+
+        log.debug("Like added filmId={} userId={}", id, userId);
+    }
+
+    // DELETE /films/{id}/like/{userId}
+    @DeleteMapping("/{id}/like/{userId}")
+    public void removelike(@PathVariable Long id, @PathVariable Long userId) {
+        log.debug("DELETE /films/{}/like/{}", id, userId);
+        filmService.removeLike(id, userId);
+
+        log.debug("Like removed filmId={} userId={}", id, userId);
+    }
+
+    // GET /films/popular?count={count}
+    @GetMapping("/popular")
+    public Collection<Film> popular(@RequestParam(defaultValue = "10") int count) {
+        log.debug("GET /films/popular?count={}", count);
+
+        var result = filmService.getPopular(count);
+
+        log.debug("Popular films fetched: {}", result.size());
+        return result;
     }
 
     @PutMapping
@@ -49,22 +82,6 @@ public class FilmController {
             throw new ValidationException(ERROR_ID_IS_NULL);
         }
 
-        Film oldFilm = films.get(newFilm.getId());
-        if (oldFilm == null) {
-            log.warn("PUT /films rejected: film not found, id={}", newFilm.getId());
-            throw new NotFoundException(ERROR_ID_NOT_FOUND + newFilm.getId());
-        }
-
-        setFilmFields(oldFilm, newFilm);
-
-        log.info("PUT /films updated: id={}, name={}", oldFilm.getId(), oldFilm.getName());
-        return oldFilm;
-    }
-
-    private void setFilmFields(Film oldFilm, Film newFilm) {
-        oldFilm.setDescription(newFilm.getDescription());
-        oldFilm.setDuration(newFilm.getDuration());
-        oldFilm.setName(newFilm.getName());
-        oldFilm.setReleaseDate(newFilm.getReleaseDate());
+        return filmService.update(newFilm);
     }
 }
