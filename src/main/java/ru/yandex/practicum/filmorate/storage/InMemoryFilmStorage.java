@@ -44,21 +44,21 @@ public class InMemoryFilmStorage implements FilmStorage {
     }
 
     @Override
-    public void addLike(Long film_id, Long user_id) {
-        likes.computeIfAbsent(film_id, k -> new HashSet<>()).add(user_id);
+    public void addLike(Long filmId, Long userId) {
+        likes.computeIfAbsent(filmId, k -> new HashSet<>()).add(userId);
     }
 
     @Override
-    public void removeLike(Long film_id, Long user_id) {
-        Set<Long> filmLikes = likes.get(film_id);
+    public void removeLike(Long filmId, Long user_id) {
+        Set<Long> filmLikes = likes.get(filmId);
         if (filmLikes != null) {
             filmLikes.remove(user_id);
         }
     }
 
     @Override
-    public int getLikeCount(Long film_id) {
-        return likes.getOrDefault(film_id, Set.of()).size();
+    public int getLikeCount(Long filmId) {
+        return likes.getOrDefault(filmId, Set.of()).size();
     }
 
     private void setFilmFields(Film oldFilm, Film newFilm) {

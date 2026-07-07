@@ -14,9 +14,9 @@ public interface FilmStorage {
 
     Collection<Film> findAll();
 
-    void addLike(Long film_id, Long user_id);
+    void addLike(Long filmId, Long userId);
 
-    void removeLike(Long film_id, Long user_id);
+    void removeLike(Long filmId, Long userId);
 
-    int getLikeCount(Long film_id);
+    int getLikeCount(Long filmId);
 }
