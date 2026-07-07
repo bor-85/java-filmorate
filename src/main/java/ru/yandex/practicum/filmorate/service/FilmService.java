@@ -38,18 +38,18 @@ public class FilmService {
                 .orElseThrow(() -> new NotFoundException(ERROR_ID_NOT_FOUND + id));
     }
 
-    public void addLike(Long film_id, Long user_id) {
-        checkFilmId(film_id);
-        checkUserId(user_id);
+    public void addLike(Long filmId, Long userId) {
+        checkFilmId(filmId);
+        checkUserId(userId);
 
-        filmStorage.addLike(film_id, user_id);
+        filmStorage.addLike(filmId, userId);
     }
 
-    public void removeLike(Long film_id, Long user_id) {
-        checkFilmId(film_id);
-        checkUserId(user_id);
+    public void removeLike(Long filmId, Long userId) {
+        checkFilmId(filmId);
+        checkUserId(userId);
 
-        filmStorage.removeLike(film_id, user_id);
+        filmStorage.removeLike(filmId, userId);
     }
 
     public List<Film> getPopular(int count) {
