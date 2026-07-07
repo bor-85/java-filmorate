@@ -54,8 +54,15 @@ public class InMemoryUserStorage implements UserStorage {
 
     @Override
     public void removeFriend(Long userId, Long friendId) {
-        friends.getOrDefault(userId, Set.of()).remove(friendId);
-        friends.getOrDefault(friendId, Set.of()).remove(userId);
+        Set<Long> friendsOfUser = friends.get(userId);
+        if (friendsOfUser != null) {
+            friendsOfUser.remove(friendId);
+        }
+
+        Set<Long> friendsOfFriend = friends.get(friendId);
+        if (friendsOfFriend != null) {
+            friendsOfFriend.remove(userId);
+        }
     }
 
     @Override
