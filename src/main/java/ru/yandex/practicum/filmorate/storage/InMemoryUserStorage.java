@@ -1,9 +1,8 @@
 package ru.yandex.practicum.filmorate.storage;
 
 import org.springframework.stereotype.Component;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
-import static ru.yandex.practicum.filmorate.validation.UserHandleMessages.*;
+
 
 import java.util.*;
 
@@ -16,7 +15,6 @@ public class InMemoryUserStorage implements UserStorage {
 
     @Override
     public User add(User user) {
-        normalizeName(user);
         long id = ++nextId;
         user.setId(id);
         users.put(id, user);
@@ -25,15 +23,9 @@ public class InMemoryUserStorage implements UserStorage {
 
     @Override
     public User update(User user) {
-
         Long id = user.getId();
-        User oldUser = users.get(id);
-        if (oldUser == null) {
-            throw new NotFoundException(ERROR_ID_NOT_FOUND + id);
-        }
-        normalizeName(user);
-        setUserFields(oldUser, user);
-        return oldUser;
+        users.replace(id, user);
+        return user;
     }
 
     @Override
@@ -87,16 +79,4 @@ public class InMemoryUserStorage implements UserStorage {
                 .toList();
     }
 
-    private void normalizeName(User user) {
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-        }
-    }
-
-    private void setUserFields(User oldUser, User newUser) {
-        oldUser.setEmail(newUser.getEmail());
-        oldUser.setLogin(newUser.getLogin());
-        oldUser.setName(newUser.getName());
-        oldUser.setBirthday(newUser.getBirthday());
-    }
 }
