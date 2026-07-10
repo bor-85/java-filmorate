@@ -40,4 +40,11 @@ public class FilmorateExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("message", message));
     }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<?> handleInternalServerError(Exception e) {
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("message", e.getMessage()));
+    }
 }
