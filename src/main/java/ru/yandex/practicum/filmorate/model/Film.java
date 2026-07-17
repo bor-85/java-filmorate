@@ -4,6 +4,8 @@ import jakarta.validation.constraints.*;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 import static ru.yandex.practicum.filmorate.validation.FilmValidationMessages.*;
 
@@ -11,6 +13,9 @@ import static ru.yandex.practicum.filmorate.validation.FilmValidationMessages.*;
 public class Film {
     private static final LocalDate MIN_RELEASE_DATE = LocalDate.of(1895, 12, 28);
     private static final int MAX_LENGTH_DESCRIPTION = 200;
+
+    private Set<Genre> genres = new HashSet<>();
+    private MpaRating mpaRating;
 
     private Long id;
 
