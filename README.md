@@ -30,7 +30,7 @@ SELECT f.id,
        f.description,
        f.release_date,
        f.duration,
-       m.name AS mparating
+       mr.name AS mparating
 FROM films AS f
 INNER JOIN mparating AS mr ON f.mparating_id = mr.id
 WHERE f.id = 1;
@@ -48,7 +48,7 @@ WHERE f.id = 1;
 ```
 SELECT count(DISTINCT user_id) AS count_likes
 FROM films AS f
-INNER JOIN likes AS l ON f.id = fg.film_id
+INNER JOIN likes AS l ON f.id = l.film_id
 WHERE f.id = 1;
 ```
 4. Получение данных по id пользователя
@@ -63,10 +63,10 @@ SELECT uf.login,
        uf.name,
        uf.email,
        uf.birthday,
-       uf.name AS friendship_status
+       fs.name AS friendship_status
 FROM users AS u
 INNER JOIN friendship AS f on f.user_id = u.id
-INNER JOIN friendship_status fs on fd.id = f.status_id
+INNER JOIN friendship_status fs on fs.id = f.status_id
 INNER JOIN users AS uf on f.friend_id = uf.id
 WHERE u.id = 1;
 ```
