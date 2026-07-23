@@ -4,7 +4,9 @@ import ru.yandex.practicum.filmorate.dto.*;
 import ru.yandex.practicum.filmorate.model.*;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Set;
+import java.util.LinkedHashSet;
 import java.util.stream.Collectors;
 
 public final class FilmMapper {
@@ -50,13 +52,14 @@ public final class FilmMapper {
         Set<GenreDto> genres = film.getGenres() == null
                 ? Collections.emptySet()
                 : film.getGenres().stream()
+                .sorted(Comparator.comparing(Genre::getId))
                 .map(g -> {
                     GenreDto gd = new GenreDto();
                     gd.setId(g.getId());
                     gd.setName(g.getName());
                     return gd;
                 })
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
 
         dto.setGenres(genres);
 
