@@ -33,15 +33,15 @@ SELECT 3, 'Мультфильм'
     WHERE NOT EXISTS (SELECT 1 FROM genres WHERE id = 3);
 
 INSERT INTO genres (id, name)
-SELECT 4, 'Боевик'
+SELECT 4, 'Триллер'
     WHERE NOT EXISTS (SELECT 1 FROM genres WHERE id = 4);
 
 INSERT INTO genres (id, name)
-SELECT 5, 'Триллер'
+SELECT 5, 'Документальный'
     WHERE NOT EXISTS (SELECT 1 FROM genres WHERE id = 5);
 
 INSERT INTO genres (id, name)
-SELECT 6, 'Документальный'
+SELECT 6, 'Боевик'
     WHERE NOT EXISTS (SELECT 1 FROM genres WHERE id = 6);
 
 --статусы дружбы
