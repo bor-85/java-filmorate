@@ -1,20 +1,17 @@
-package ru.yandex.practicum.filmorate.model;
+package ru.yandex.practicum.filmorate.dto;
 
 import jakarta.validation.constraints.*;
 import lombok.Data;
 
 import java.time.LocalDate;
-import java.util.HashSet;
 import java.util.Set;
 
+import static ru.yandex.practicum.filmorate.model.Film.MAX_LENGTH_DESCRIPTION;
+import static ru.yandex.practicum.filmorate.model.Film.MIN_RELEASE_DATE;
 import static ru.yandex.practicum.filmorate.validation.FilmValidationMessages.*;
 
 @Data
-public class Film {
-    public static final LocalDate MIN_RELEASE_DATE = LocalDate.of(1895, 12, 28);
-    public static final int MAX_LENGTH_DESCRIPTION = 200;
-
-    private Long id;
+public class NewFilmRequest {
 
     @NotBlank(message = ERROR_NAME_EMPTY)
     private String name;
@@ -33,8 +30,7 @@ public class Film {
     @Positive(message = ERROR_INVALID_DURATION)
     private int duration;
 
-    private MpaRating mpa;
+    private MpaaRatingDto mpa;
 
-    private Set<Genre> genres = new HashSet<>();
-
+    private Set<GenreDto> genres;
 }

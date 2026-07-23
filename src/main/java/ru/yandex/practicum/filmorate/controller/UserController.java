@@ -2,13 +2,13 @@ package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.dto.*;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
-import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
 
 import java.util.Collection;
-import static ru.yandex.practicum.filmorate.validation.UserHandleMessages.*;
 
+import static ru.yandex.practicum.filmorate.validation.UserHandleMessages.ERROR_ID_IS_NULL;
 
 @RestController
 @RequestMapping("/users")
@@ -21,18 +21,17 @@ public class UserController {
     }
 
     @GetMapping
-    public Collection<User> findAll() {
+    public Collection<UserDto> findAll() {
         return userService.findAll();
     }
 
     @PostMapping
-    public User create(@Valid @RequestBody User user) {
-        return userService.add(user);
+    public UserDto create(@Valid @RequestBody NewUserRequest request) {
+        return userService.add(request);
     }
 
-    // GET /users/{id}
     @GetMapping("/{id}")
-    public User findById(@PathVariable Long id) {
+    public UserDto findById(@PathVariable Long id) {
         return userService.findById(id);
     }
 
@@ -50,21 +49,22 @@ public class UserController {
 
     // GET /users/{id}/friends
     @GetMapping("/{id}/friends")
-    public Collection<User> friends(@PathVariable Long id) {
+    public Collection<UserDto> friends(@PathVariable Long id) {
         return userService.getFriends(id);
     }
 
     // GET /users/{id}/friends/common/{otherId}
     @GetMapping("/{id}/friends/common/{otherId}")
-    public Collection<User> commonFriends(@PathVariable Long id, @PathVariable Long otherId) {
+    public Collection<UserDto> commonFriends(@PathVariable Long id, @PathVariable Long otherId) {
         return userService.getCommonFriends(id, otherId);
     }
 
     @PutMapping
-    public User update(@Valid @RequestBody User newUser) {
-        if (newUser.getId() == null) {
+    public UserDto update(@Valid @RequestBody UpdateUserRequest request) {
+        if (request.getId() == null) {
             throw new ValidationException(ERROR_ID_IS_NULL);
         }
-        return userService.update(newUser);
+        return userService.update(request.getId(), request);
     }
+
 }

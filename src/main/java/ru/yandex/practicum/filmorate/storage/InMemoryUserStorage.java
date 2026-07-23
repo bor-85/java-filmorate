@@ -41,7 +41,6 @@ public class InMemoryUserStorage implements UserStorage {
     @Override
     public void addFriend(Long userId, Long friendId) {
         friends.computeIfAbsent(userId, k -> new HashSet<>()).add(friendId);
-        friends.computeIfAbsent(friendId, k -> new HashSet<>()).add(userId);
     }
 
     @Override
@@ -49,11 +48,6 @@ public class InMemoryUserStorage implements UserStorage {
         Set<Long> friendsOfUser = friends.get(userId);
         if (friendsOfUser != null) {
             friendsOfUser.remove(friendId);
-        }
-
-        Set<Long> friendsOfFriend = friends.get(friendId);
-        if (friendsOfFriend != null) {
-            friendsOfFriend.remove(userId);
         }
     }
 

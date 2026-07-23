@@ -4,7 +4,8 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import ru.yandex.practicum.filmorate.dto.FilmDto;
+import ru.yandex.practicum.filmorate.dto.UserDto;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.FilmService;
@@ -20,7 +21,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static ru.yandex.practicum.filmorate.validation.FilmValidationMessages.*;
 import static ru.yandex.practicum.filmorate.validation.UserValidationMessages.*;
 
-@SpringBootTest
 class FilmorateApplicationTests {
 
 	private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
@@ -31,8 +31,9 @@ class FilmorateApplicationTests {
 
 	private final InMemoryUserStorage userStorage = new InMemoryUserStorage();
 	private final InMemoryFilmStorage filmStorage = new InMemoryFilmStorage();
+
 	private final UserService userService = new UserService(userStorage);
-	private final FilmService filmService = new FilmService(filmStorage, userStorage);
+	private final FilmService filmService = new FilmService(filmStorage, userStorage, null, null);
 
 	private User createUser(String login) {
 		User u = new User();
@@ -40,7 +41,7 @@ class FilmorateApplicationTests {
 		u.setEmail(login + "@mail.ru");
 		u.setName("");
 		u.setBirthday(LocalDate.of(2000, 1, 1));
-		return userService.add(u);
+		return userStorage.add(u); // напрямую в in-memory
 	}
 
 	private Film createFilm(String name) {
@@ -49,7 +50,7 @@ class FilmorateApplicationTests {
 		f.setDescription("desc");
 		f.setReleaseDate(LocalDate.of(2000, 1, 1));
 		f.setDuration(10);
-		return filmService.add(f);
+		return filmStorage.add(f); // напрямую в in-memory
 	}
 
 	//Тесты класса User
@@ -62,8 +63,7 @@ class FilmorateApplicationTests {
 
 		Set<ConstraintViolation<User>> violations = validate(user);
 
-		assertTrue(violations.stream().anyMatch(v ->
-				v.getMessage().equals(ERROR_LOGIN_EMPTY)));
+		assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals(ERROR_LOGIN_EMPTY)));
 	}
 
 	//Проверка валидации на содержание пробелов в логине
@@ -75,8 +75,7 @@ class FilmorateApplicationTests {
 
 		Set<ConstraintViolation<User>> violations = validate(user);
 
-		assertTrue(violations.stream().anyMatch(v ->
-				v.getMessage().equals(ERROR_LOGIN_CONTAINS_SPACES)));
+		assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals(ERROR_LOGIN_CONTAINS_SPACES)));
 	}
 
 	//Проверка валидации, что mail содержит @
@@ -88,8 +87,7 @@ class FilmorateApplicationTests {
 
 		Set<ConstraintViolation<User>> violations = validate(user);
 
-		assertTrue(violations.stream().anyMatch(v ->
-				v.getMessage().equals(ERROR_INVALID_EMAIL)));
+		assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals(ERROR_INVALID_EMAIL)));
 	}
 
 	//Проверка валидации, что mail не null
@@ -100,8 +98,7 @@ class FilmorateApplicationTests {
 
 		Set<ConstraintViolation<User>> violations = validate(user);
 
-		assertTrue(violations.stream().anyMatch(v ->
-				v.getMessage().equals(ERROR_EMAIL_EMPTY)));
+		assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals(ERROR_EMAIL_EMPTY)));
 	}
 
 	//Проверка валидации, что дата рождения не больше текущей даты
@@ -114,8 +111,7 @@ class FilmorateApplicationTests {
 
 		Set<ConstraintViolation<User>> violations = validate(user);
 
-		assertTrue(violations.stream().anyMatch(v ->
-				v.getMessage().equals(ERROR_BIRTHDAY_TOO_LATE)));
+		assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals(ERROR_BIRTHDAY_TOO_LATE)));
 	}
 
 	//Проверка валидации, что с корректными данными пользователь создается
@@ -144,8 +140,7 @@ class FilmorateApplicationTests {
 
 		Set<ConstraintViolation<Film>> violations = validate(film);
 
-		assertTrue(violations.stream().anyMatch(v ->
-				v.getMessage().equals(ERROR_NAME_EMPTY)));
+		assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals(ERROR_NAME_EMPTY)));
 	}
 
 	//Проверка валидации, что длина строки описания фильма не более 200 символов
@@ -153,14 +148,13 @@ class FilmorateApplicationTests {
 	void whenDescriptionTooLongShouldBeMessage() {
 		Film film = new Film();
 		film.setName("Test");
-		film.setDescription("a".repeat(201)); // > 200
+		film.setDescription("a".repeat(201));
 		film.setReleaseDate(LocalDate.of(2000, 1, 1));
 		film.setDuration(120);
 
 		Set<ConstraintViolation<Film>> violations = validate(film);
 
-		assertTrue(violations.stream().anyMatch(v ->
-				v.getMessage().equals(ERROR_DESCRIPTION_TOO_LONG)));
+		assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals(ERROR_DESCRIPTION_TOO_LONG)));
 	}
 
 	//Проверка валидации, что длительность фильма - положительное число
@@ -174,8 +168,7 @@ class FilmorateApplicationTests {
 
 		Set<ConstraintViolation<Film>> violations = validate(film);
 
-		assertTrue(violations.stream().anyMatch(v ->
-				v.getMessage().equals(ERROR_INVALID_DURATION)));
+		assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals(ERROR_INVALID_DURATION)));
 	}
 
 	//Проверка валидации, что дата выпуска фильма не ранее 1895 года
@@ -189,8 +182,7 @@ class FilmorateApplicationTests {
 
 		Set<ConstraintViolation<Film>> violations = validate(film);
 
-		assertTrue(violations.stream().anyMatch(v ->
-				v.getMessage().equals(ERROR_RELEASEDATE_TOO_EARLY)));
+		assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals(ERROR_RELEASEDATE_TOO_EARLY)));
 	}
 
 	//Проверка валидации, что дата выпуска фильма не может быть пустой
@@ -204,8 +196,7 @@ class FilmorateApplicationTests {
 
 		Set<ConstraintViolation<Film>> violations = validate(film);
 
-		assertTrue(violations.stream().anyMatch(v ->
-				v.getMessage().equals(ERROR_RELEASEDATE_IS_NULL)));
+		assertTrue(violations.stream().anyMatch(v -> v.getMessage().equals(ERROR_RELEASEDATE_IS_NULL)));
 	}
 
 	//Если данные фильма валидные, то ошибок быть не должно
@@ -223,9 +214,9 @@ class FilmorateApplicationTests {
 
 	// Тесты UserService
 
-	//Проверка, что произошло взаимное добавление в друзья
+	//Проверка, что произошло одностороннее добавление в друзья
 	@Test
-	void addFriend_shouldBeMutual() {
+	void addFriend_shouldBeOneWayFriendship() {
 		User a = createUser("a");
 		User b = createUser("b");
 
@@ -237,13 +228,12 @@ class FilmorateApplicationTests {
 		assertEquals(1, aFriends.size());
 		assertEquals(b.getId(), aFriends.get(0).getId());
 
-		assertEquals(1, bFriends.size());
-		assertEquals(a.getId(), bFriends.get(0).getId());
+		assertEquals(0, bFriends.size());
 	}
 
-	//Удаление из друзей должно быть взаимным
+	//Удаление из друзей должно быть односторонним
 	@Test
-	void removeFriend_shouldBeMutual() {
+	void removeFriend_shouldBeOneWay() {
 		User a = createUser("a");
 		User b = createUser("b");
 
@@ -268,11 +258,10 @@ class FilmorateApplicationTests {
 
 		// u4 -> u2 (общий)
 		userService.addFriend(u4.getId(), u2.getId());
-		userService.addFriend(u4.getId(), createUser("uX").getId());
 
-		var common = userService.getCommonFriends(u1.getId(), u4.getId())
+		List<Long> common = userService.getCommonFriends(u1.getId(), u4.getId())
 				.stream()
-				.map(User::getId)
+				.map(UserDto::getId)
 				.toList();
 
 		assertEquals(1, common.size());
@@ -309,14 +298,10 @@ class FilmorateApplicationTests {
 		Film film = createFilm("film");
 		User user = createUser("u1");
 
-		// ставим лайк
 		filmService.addLike(film.getId(), user.getId());
 		assertEquals(1, filmStorage.getLikeCount(film.getId()));
 
-		// удаляем лайк
 		assertDoesNotThrow(() -> filmService.removeLike(film.getId(), user.getId()));
-
-		// проверяем, что лайков больше нет
 		assertEquals(0, filmStorage.getLikeCount(film.getId()));
 	}
 
@@ -326,19 +311,18 @@ class FilmorateApplicationTests {
 		User u1 = createUser("u1");
 		User u2 = createUser("u2");
 
-		Film f1 = createFilm("f1"); // id=1
-		Film f2 = createFilm("f2"); // id=2
-		Film f3 = createFilm("f3"); // id=3
+		Film f1 = createFilm("f1");
+		Film f2 = createFilm("f2");
+		Film f3 = createFilm("f3");
 
 		filmService.addLike(f1.getId(), u1.getId());
 		filmService.addLike(f2.getId(), u1.getId());
 		filmService.addLike(f2.getId(), u2.getId());
 
-		var popularIds = filmService.getPopular(10).stream()
-				.map(Film::getId)
+		List<Long> popularIds = filmService.getPopular(10).stream()
+				.map(FilmDto::getId)
 				.toList();
 
 		assertEquals(List.of(f2.getId(), f1.getId(), f3.getId()), popularIds);
 	}
-
 }
