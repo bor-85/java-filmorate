@@ -28,8 +28,8 @@ public class FilmDbStorage extends StorageBaseOperations<Film> implements ru.yan
                     "  g.name AS genre_name " +
                     "FROM films f " +
                     "JOIN mparating m ON m.id = f.mparating_id " +
-                    "JOIN film_genre fg ON fg.film_id = f.id " +
-                    "JOIN genres g ON g.id = fg.genre_id ";
+                    "LEFT JOIN film_genre fg ON fg.film_id = f.id " +
+                    "LEFT JOIN genres g ON g.id = fg.genre_id ";
 
     private static final String FIND_BY_ID_QUERY = FILM_WITH_GENRES_MPA_BASE + "WHERE f.id = ?";
 
