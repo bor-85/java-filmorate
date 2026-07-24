@@ -3,12 +3,8 @@ package ru.yandex.practicum.filmorate.controller;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.dto.*;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.service.UserService;
-
 import java.util.Collection;
-
-import static ru.yandex.practicum.filmorate.validation.UserHandleMessages.ERROR_ID_IS_NULL;
 
 @RestController
 @RequestMapping("/users")
@@ -61,9 +57,6 @@ public class UserController {
 
     @PutMapping
     public UserDto update(@Valid @RequestBody UpdateUserRequest request) {
-        if (request.getId() == null) {
-            throw new ValidationException(ERROR_ID_IS_NULL);
-        }
         return userService.update(request.getId(), request);
     }
 

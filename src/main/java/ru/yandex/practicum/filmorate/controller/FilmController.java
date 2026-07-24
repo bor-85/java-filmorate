@@ -3,12 +3,8 @@ package ru.yandex.practicum.filmorate.controller;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.dto.*;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.service.FilmService;
-
 import java.util.Collection;
-
-import static ru.yandex.practicum.filmorate.validation.FilmHandleMessages.ERROR_ID_IS_NULL;
 
 @RestController
 @RequestMapping("/films")
@@ -37,9 +33,6 @@ public class FilmController {
 
     @PutMapping
     public FilmDto update(@Valid @RequestBody UpdateFilmRequest request) {
-        if (request.getId() == null) {
-            throw new ValidationException(ERROR_ID_IS_NULL);
-        }
         return filmService.update(request.getId(), request);
     }
 

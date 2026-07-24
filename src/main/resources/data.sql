@@ -52,14 +52,3 @@ SELECT 1, 'CONFIRMED'
 INSERT INTO friendship_status (id, name)
 SELECT 2, 'NOT_CONFIRMED'
     WHERE NOT EXISTS (SELECT 1 FROM friendship_status WHERE id = 2);
-
---чистка перед каждым запуском
-DELETE FROM likes;
-
-DELETE FROM film_genre;
-
-DELETE FROM friendship;
-
-DELETE FROM films;
-
-DELETE FROM users;

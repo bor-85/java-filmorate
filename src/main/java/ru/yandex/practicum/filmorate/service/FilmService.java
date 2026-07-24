@@ -7,16 +7,18 @@ import ru.yandex.practicum.filmorate.dto.FilmDto;
 import ru.yandex.practicum.filmorate.dto.NewFilmRequest;
 import ru.yandex.practicum.filmorate.dto.UpdateFilmRequest;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.mapper.FilmMapper;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.dto.GenreDto;
+import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
-import static ru.yandex.practicum.filmorate.validation.FilmHandleMessages.ERROR_ID_NOT_FOUND;
-import static ru.yandex.practicum.filmorate.validation.FilmHandleMessages.ERROR_ID_NOT_FOUND_MPA;
+import static ru.yandex.practicum.filmorate.validation.FilmHandleMessages.*;
 
 @Slf4j
 @Service
@@ -39,7 +41,11 @@ public class FilmService {
 
     public List<FilmDto> findAll() {
         log.debug("Service: findAll() filmsCount={}", filmStorage.findAll().size());
-        return filmStorage.findAll().stream()
+
+        List<Film> films = new ArrayList<>(filmStorage.findAll());
+        fillGenres(films);
+
+        return films.stream()
                 .map(FilmMapper::mapToFilmDto)
                 .toList();
     }
@@ -47,61 +53,58 @@ public class FilmService {
     public FilmDto add(NewFilmRequest request) {
         log.info("Service: add film name='{}', releaseDate={}, duration={}",
                 request.getName(), request.getReleaseDate(), request.getDuration());
+
         Long mpaId = (request.getMpa() == null) ? null : request.getMpa().getId();
         if (mpaId == null) {
             throw new NotFoundException(ERROR_ID_NOT_FOUND_MPA + mpaId);
         }
         mpaService.findById(mpaId);
 
-        if (request.getGenres() != null) {
-            for (GenreDto g : request.getGenres()) {
-                if (g != null && g.getId() != null) {
-                    genreService.findById(g.getId());
-                }
-            }
-        }
+        validateGenresExist(request.getGenres());
 
         Film film = FilmMapper.mapToFilm(request);
         Film created = filmStorage.add(film);
 
+        fillGenres(Collections.singletonList(created));
+
         log.info("Service: film created id={}, name='{}'", created.getId(), created.getName());
-        return filmStorage.findById(created.getId())
-                .map(FilmMapper::mapToFilmDto)
-                .orElseThrow(() -> new NotFoundException(ERROR_ID_NOT_FOUND + created.getId()));
+        return FilmMapper.mapToFilmDto(created);
     }
 
     public FilmDto findById(Long id) {
         log.debug("Service: findById id={}", id);
-        return filmStorage.findById(id)
-                .map(FilmMapper::mapToFilmDto)
+
+        Film film = filmStorage.findById(id)
                 .orElseThrow(() -> new NotFoundException(ERROR_ID_NOT_FOUND + id));
+
+        fillGenres(Collections.singletonList(film));
+
+        return FilmMapper.mapToFilmDto(film);
     }
 
     public FilmDto update(Long filmId, UpdateFilmRequest request) {
+        if (filmId == null) {
+            throw new ValidationException(ERROR_ID_IS_NULL);
+        }
+
         log.info("Service: update film id={}, name='{}'", filmId, request.getName());
 
         Film oldFilm = filmStorage.findById(filmId)
                 .orElseThrow(() -> new NotFoundException(ERROR_ID_NOT_FOUND + filmId));
+
         if (request.getMpa() != null && request.getMpa().getId() != null) {
             mpaService.findById(request.getMpa().getId());
         }
 
-        if (request.getGenres() != null) {
-            for (GenreDto g : request.getGenres()) {
-                if (g != null && g.getId() != null) {
-                    genreService.findById(g.getId());
-                }
-            }
-        }
+        validateGenresExist(request.getGenres());
 
         FilmMapper.updateFilmFields(oldFilm, request);
-
         Film updated = filmStorage.update(oldFilm);
 
+        fillGenres(Collections.singletonList(updated));
+
         log.info("Service: film updated id={}, name='{}'", updated.getId(), updated.getName());
-        return filmStorage.findById(filmId)
-                .map(FilmMapper::mapToFilmDto)
-                .orElseThrow(() -> new NotFoundException(ERROR_ID_NOT_FOUND + filmId));
+        return FilmMapper.mapToFilmDto(updated);
     }
 
     public void addLike(Long filmId, Long userId) {
@@ -129,7 +132,10 @@ public class FilmService {
     public List<FilmDto> getPopular(int count) {
         log.debug("Service: getPopular count={}", count);
 
-        return filmStorage.getPopular(count).stream()
+        List<Film> films = filmStorage.getPopular(count);
+        fillGenres(films);
+
+        return films.stream()
                 .map(FilmMapper::mapToFilmDto)
                 .toList();
     }
@@ -145,6 +151,64 @@ public class FilmService {
         if (userStorage.findById(userId).isEmpty()) {
             log.warn("Service: user not found id={}", userId);
             throw new NotFoundException(ru.yandex.practicum.filmorate.validation.UserHandleMessages.ERROR_ID_NOT_FOUND + userId);
+        }
+    }
+
+    private void validateGenresExist(Set<GenreDto> requestGenres) {
+        if (requestGenres == null) {
+            return;
+        }
+
+        Set<Long> ids = requestGenres.stream()
+                .filter(Objects::nonNull)
+                .map(GenreDto::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        if (ids.isEmpty()) {
+            return;
+        }
+
+        Set<Long> existingIds = genreService.findAll().stream()
+                .map(g -> g.getId())
+                .collect(Collectors.toSet());
+
+        ids.removeAll(existingIds);
+
+        if (!ids.isEmpty()) {
+            Long missingId = ids.iterator().next();
+            throw new NotFoundException(ERROR_ID_NOT_FOUND_GENRE + missingId);
+        }
+    }
+
+    private void fillGenres(List<Film> films) {
+        if (films == null || films.isEmpty()) {
+            return;
+        }
+
+        List<Long> filmIds = films.stream()
+                .map(Film::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        if (filmIds.isEmpty()) {
+            return;
+        }
+
+        Map<Long, Set<Genre>> genresByFilmId = genreService.getGenresByFilmIds(filmIds);
+
+        for (Film film : films) {
+            Long id = film.getId();
+            Set<Genre> genres = (id == null)
+                    ? Set.of()
+                    : genresByFilmId.getOrDefault(id, Set.of());
+
+            Set<Genre> sorted = genres.stream()
+                    .sorted(Comparator.comparing(Genre::getId))
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+
+            film.setGenres(sorted);
         }
     }
 }

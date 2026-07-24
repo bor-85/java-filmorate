@@ -8,12 +8,14 @@ import ru.yandex.practicum.filmorate.dto.NewUserRequest;
 import ru.yandex.practicum.filmorate.dto.UpdateUserRequest;
 import ru.yandex.practicum.filmorate.dto.UserDto;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.mapper.UserMapper;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.util.List;
 
+import static ru.yandex.practicum.filmorate.validation.UserHandleMessages.ERROR_ID_IS_NULL;
 import static ru.yandex.practicum.filmorate.validation.UserHandleMessages.ERROR_ID_NOT_FOUND;
 
 @Slf4j
@@ -56,6 +58,10 @@ public class UserService {
 
     @Transactional
     public UserDto update(Long userId, UpdateUserRequest request) {
+        if (userId == null) {
+            throw new ValidationException(ERROR_ID_IS_NULL);
+        }
+
         log.info("Service: update user id={}, login='{}'", userId, request.getLogin());
 
         User oldUser = userStorage.findById(userId)

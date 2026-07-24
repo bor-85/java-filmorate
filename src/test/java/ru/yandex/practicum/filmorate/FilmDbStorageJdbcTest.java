@@ -7,29 +7,48 @@ import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.yandex.practicum.filmorate.mapper.FilmRowMapper;
+import ru.yandex.practicum.filmorate.mapper.FilmRowMapperWithoutGenres;
+import ru.yandex.practicum.filmorate.mapper.GenreRowMapper;
 import ru.yandex.practicum.filmorate.mapper.UserRowMapper;
 import ru.yandex.practicum.filmorate.model.*;
 import ru.yandex.practicum.filmorate.storage.FilmDbStorage;
+import ru.yandex.practicum.filmorate.storage.GenreDbStorage;
 import ru.yandex.practicum.filmorate.storage.UserDbStorage;
 
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @JdbcTest
 @AutoConfigureTestDatabase
-@Import({FilmDbStorage.class, FilmRowMapper.class, UserRowMapper.class, UserDbStorage.class})
+@Import({
+        FilmDbStorage.class,
+        UserDbStorage.class,
+
+        FilmRowMapper.class,
+        FilmRowMapperWithoutGenres.class,
+        UserRowMapper.class,
+
+        GenreDbStorage.class,
+        GenreRowMapper.class
+})
 class FilmDbStorageJdbcTest {
 
     private final FilmDbStorage filmDbStorage;
     private final UserDbStorage userDbStorage;
+    private final GenreDbStorage genreDbStorage;
     private final JdbcTemplate jdbc;
 
     @Autowired
-    FilmDbStorageJdbcTest(FilmDbStorage filmDbStorage, UserDbStorage userDbStorage, JdbcTemplate jdbc) {
+    FilmDbStorageJdbcTest(FilmDbStorage filmDbStorage,
+                          UserDbStorage userDbStorage,
+                          GenreDbStorage genreDbStorage,
+                          JdbcTemplate jdbc) {
         this.filmDbStorage = filmDbStorage;
         this.userDbStorage = userDbStorage;
+        this.genreDbStorage = genreDbStorage;
         this.jdbc = jdbc;
     }
 
@@ -79,9 +98,12 @@ class FilmDbStorageJdbcTest {
         assertThat(found.getMpa().getId()).isEqualTo(1L);
         assertThat(found.getMpa().getName()).isNotNull();
 
-        assertThat(found.getGenres()).isNotNull();
-        assertThat(found.getGenres()).extracting(Genre::getId).containsExactlyInAnyOrder(1L, 2L);
-        assertThat(found.getGenres()).allSatisfy(g -> assertThat(g.getName()).isNotNull());
+        Map<Long, Set<Genre>> genresByFilmId = genreDbStorage.findGenresByFilmIds(Set.of(created.getId()));
+        Set<Genre> genres = genresByFilmId.getOrDefault(created.getId(), Set.of());
+
+        assertThat(genres).isNotNull();
+        assertThat(genres).extracting(Genre::getId).containsExactlyInAnyOrder(1L, 2L);
+        assertThat(genres).allSatisfy(g -> assertThat(g.getName()).isNotNull());
     }
 
     //Проверяет корректность удаления/пересоздания связей в film_genre при update() и обновление mparating_id
@@ -101,7 +123,11 @@ class FilmDbStorageJdbcTest {
 
         Film updated = filmDbStorage.findById(created.getId()).orElseThrow();
         assertThat(updated.getMpa().getId()).isEqualTo(2L);
-        assertThat(updated.getGenres()).extracting(Genre::getId).containsExactly(3L);
+
+        Map<Long, Set<Genre>> genresByFilmId = genreDbStorage.findGenresByFilmIds(Set.of(created.getId()));
+        Set<Genre> genres = genresByFilmId.getOrDefault(created.getId(), Set.of());
+
+        assertThat(genres).extracting(Genre::getId).containsExactly(3L);
     }
 
     //Проверяет, что лайки не дублируются

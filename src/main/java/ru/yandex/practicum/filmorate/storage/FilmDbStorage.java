@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.storage;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
@@ -13,9 +14,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Repository
-public class FilmDbStorage extends StorageBaseOperations<Film> implements ru.yandex.practicum.filmorate.storage.FilmStorage {
+public class FilmDbStorage extends StorageBaseOperations<Film> implements FilmStorage {
 
-    private static final String FILM_WITH_GENRES_MPA_BASE =
+    private static final String FILM_WITH_MPA_BASE =
             "SELECT " +
                     "  f.id AS film_id, " +
                     "  f.name AS film_name, " +
@@ -23,17 +24,12 @@ public class FilmDbStorage extends StorageBaseOperations<Film> implements ru.yan
                     "  f.releaseDate AS film_release_date, " +
                     "  f.duration AS film_duration, " +
                     "  m.id AS mpa_id, " +
-                    "  m.name AS mpa_name, " +
-                    "  g.id AS genre_id, " +
-                    "  g.name AS genre_name " +
+                    "  m.name AS mpa_name " +
                     "FROM films f " +
-                    "JOIN mparating m ON m.id = f.mparating_id " +
-                    "LEFT JOIN film_genre fg ON fg.film_id = f.id " +
-                    "LEFT JOIN genres g ON g.id = fg.genre_id ";
+                    "JOIN mparating m ON m.id = f.mparating_id ";
 
-    private static final String FIND_BY_ID_QUERY = FILM_WITH_GENRES_MPA_BASE + "WHERE f.id = ?";
-
-    private static final String FIND_ALL_QUERY = FILM_WITH_GENRES_MPA_BASE + "ORDER BY f.id, g.id";
+    private static final String FIND_BY_ID_QUERY = FILM_WITH_MPA_BASE + "WHERE f.id = ?";
+    private static final String FIND_ALL_QUERY = FILM_WITH_MPA_BASE + "ORDER BY f.id";
 
     private static final String POPULAR_QUERY =
             "WITH popular AS ( " +
@@ -51,15 +47,11 @@ public class FilmDbStorage extends StorageBaseOperations<Film> implements ru.yan
                     "  f.releaseDate AS film_release_date, " +
                     "  f.duration AS film_duration, " +
                     "  m.id AS mpa_id, " +
-                    "  m.name AS mpa_name, " +
-                    "  g.id AS genre_id, " +
-                    "  g.name AS genre_name " +
+                    "  m.name AS mpa_name " +
                     "FROM popular p " +
                     "JOIN films f ON f.id = p.film_id " +
-                    "LEFT JOIN mparating m ON m.id = f.mparating_id " +
-                    "LEFT JOIN film_genre fg ON fg.film_id = f.id " +
-                    "LEFT JOIN genres g ON g.id = fg.genre_id " +
-                    "ORDER BY p.likes_count DESC, f.id, g.id";
+                    "JOIN mparating m ON m.id = f.mparating_id " +
+                    "ORDER BY p.likes_count DESC, f.id";
 
     private static final String INSERT_FILM_QUERY =
             "INSERT INTO films(name, description, releaseDate, duration, mparating_id) VALUES (?, ?, ?, ?, ?)";
@@ -83,7 +75,8 @@ public class FilmDbStorage extends StorageBaseOperations<Film> implements ru.yan
     private static final String REMOVE_LIKE_QUERY =
             "DELETE FROM likes WHERE film_id = ? AND user_id = ?";
 
-    public FilmDbStorage(JdbcTemplate jdbc, RowMapper<Film> mapper) {
+    public FilmDbStorage(JdbcTemplate jdbc,
+                         @Qualifier("filmRowMapperWithoutGenres") RowMapper<Film> mapper) {
         super(jdbc, mapper);
     }
 
@@ -92,9 +85,7 @@ public class FilmDbStorage extends StorageBaseOperations<Film> implements ru.yan
     }
 
     private static Set<Long> extractGenreIds(Film film) {
-        if (film.getGenres() == null) {
-            return Set.of();
-        }
+        if (film.getGenres() == null) return Set.of();
         return film.getGenres().stream()
                 .map(Genre::getId)
                 .filter(Objects::nonNull)
@@ -102,32 +93,9 @@ public class FilmDbStorage extends StorageBaseOperations<Film> implements ru.yan
     }
 
     private static Long extractMpaId(Film film) {
-        if (film.getMpa() == null) {
-            return null;
-        }
+        if (film.getMpa() == null) return null;
         MpaRating mpa = film.getMpa();
         return mpa.getId();
-    }
-
-    private static List<Film> aggregateFilms(List<Film> rows) {
-        Map<Long, Film> map = new LinkedHashMap<>();
-
-        for (Film row : rows) {
-            Long filmId = row.getId();
-            if (filmId == null) continue;
-
-            Film existing = map.get(filmId);
-            if (existing == null) {
-                row.setGenres(row.getGenres() == null ? new HashSet<>() : new HashSet<>(row.getGenres()));
-                map.put(filmId, row);
-            } else {
-                if (row.getGenres() != null) {
-                    existing.getGenres().addAll(row.getGenres());
-                }
-            }
-        }
-
-        return new ArrayList<>(map.values());
     }
 
     @Override
@@ -147,6 +115,8 @@ public class FilmDbStorage extends StorageBaseOperations<Film> implements ru.yan
         for (Long genreId : extractGenreIds(film)) {
             jdbc.update(INSERT_FILM_GENRE_QUERY, filmId, genreId);
         }
+
+        film.setGenres(Set.of());
 
         return film;
     }
@@ -169,29 +139,24 @@ public class FilmDbStorage extends StorageBaseOperations<Film> implements ru.yan
             jdbc.update(INSERT_FILM_GENRE_QUERY, film.getId(), genreId);
         }
 
+        film.setGenres(Set.of());
         return film;
     }
 
     @Override
     public Optional<Film> findById(Long id) {
-        List<Film> rows = findMany(FIND_BY_ID_QUERY, id);
-        List<Film> films = aggregateFilms(rows);
-        return films.stream().findFirst();
+        return findOne(FIND_BY_ID_QUERY, id);
     }
 
     @Override
     public Collection<Film> findAll() {
-        List<Film> rows = findMany(FIND_ALL_QUERY);
-        return aggregateFilms(rows);
+        return findMany(FIND_ALL_QUERY);
     }
 
     @Override
     @Transactional
     public void addLike(Long filmId, Long userId) {
-        jdbc.update(ADD_LIKE_QUERY,
-                filmId, userId,
-                filmId, userId
-        );
+        jdbc.update(ADD_LIKE_QUERY, filmId, userId, filmId, userId);
     }
 
     @Override
@@ -202,10 +167,7 @@ public class FilmDbStorage extends StorageBaseOperations<Film> implements ru.yan
 
     @Override
     public List<Film> getPopular(int count) {
-        if (count <= 0) {
-            return List.of();
-        }
-        List<Film> rows = findMany(POPULAR_QUERY, count);
-        return aggregateFilms(rows);
+        if (count <= 0) return List.of();
+        return findMany(POPULAR_QUERY, count);
     }
 }
