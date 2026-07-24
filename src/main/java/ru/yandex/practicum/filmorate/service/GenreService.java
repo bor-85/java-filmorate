@@ -31,4 +31,8 @@ public class GenreService {
     public Map<Long, Set<Genre>> getGenresByFilmIds(Collection<Long> filmIds) {
         return genreStorage.findGenresByFilmIds(filmIds);
     }
+
+    public Set<Long> findExistingGenreIds(Collection<Long> ids) {
+        return genreStorage.findExistingGenreIds(ids);
+    }
 }

@@ -10,4 +10,6 @@ public interface GenreStorage {
     Optional<Genre> findById(Long id);
 
     Map<Long, Set<Genre>> findGenresByFilmIds(Collection<Long> filmIds);
+
+    Set<Long> findExistingGenreIds(Collection<Long> ids);
 }

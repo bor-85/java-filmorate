@@ -24,6 +24,9 @@ public class GenreDbStorage extends StorageBaseOperations<Genre> implements Genr
     private static final String FIND_BY_ID_QUERY =
             "SELECT id, name FROM genres WHERE id = ?";
 
+    private static final String FIND_EXISTING_GENRE_IDS_QUERY =
+            "SELECT id FROM genres WHERE id IN (%s)";
+
     public GenreDbStorage(JdbcTemplate jdbc, GenreRowMapper mapper) {
         super(jdbc, mapper);
     }
@@ -68,6 +71,28 @@ public class GenreDbStorage extends StorageBaseOperations<Genre> implements Genr
                     });
         }
         return result;
+    }
+
+    @Override
+    public Set<Long> findExistingGenreIds(Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Set.of();
+        }
+
+        List<Long> distinct = ids.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        if (distinct.isEmpty()) {
+            return Set.of();
+        }
+
+        String placeholders = distinct.stream().map(x -> "?").collect(Collectors.joining(","));
+        String sql = String.format(FIND_EXISTING_GENRE_IDS_QUERY, placeholders);
+
+        List<Long> existing = jdbc.queryForList(sql, Long.class, distinct.toArray());
+        return new HashSet<>(existing);
     }
 
 }

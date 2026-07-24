@@ -40,9 +40,11 @@ public class FilmService {
     }
 
     public List<FilmDto> findAll() {
-        log.debug("Service: findAll() filmsCount={}", filmStorage.findAll().size());
+        var filmsFromDb = filmStorage.findAll();
 
-        List<Film> films = new ArrayList<>(filmStorage.findAll());
+        log.debug("Service: findAll() filmsCount={}", filmsFromDb.size());
+
+        List<Film> films = new ArrayList<>(filmsFromDb);
         fillGenres(films);
 
         return films.stream()
@@ -169,9 +171,7 @@ public class FilmService {
             return;
         }
 
-        Set<Long> existingIds = genreService.findAll().stream()
-                .map(g -> g.getId())
-                .collect(Collectors.toSet());
+        Set<Long> existingIds = genreService.findExistingGenreIds(ids);
 
         ids.removeAll(existingIds);
 
