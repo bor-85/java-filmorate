@@ -1,9 +1,9 @@
-package ru.yandex.practicum.filmorate.model;
+package ru.yandex.practicum.filmorate.dto;
 
 import lombok.Data;
 
 @Data
-public class MpaRating {
+public class GenreDto {
     private Long id;
     private String name;
 }

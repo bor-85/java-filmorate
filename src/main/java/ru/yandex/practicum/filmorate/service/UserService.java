@@ -1,62 +1,82 @@
 package ru.yandex.practicum.filmorate.service;
 
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.dto.NewUserRequest;
+import ru.yandex.practicum.filmorate.dto.UpdateUserRequest;
+import ru.yandex.practicum.filmorate.dto.UserDto;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
+import ru.yandex.practicum.filmorate.mapper.UserMapper;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
-import static ru.yandex.practicum.filmorate.validation.UserHandleMessages.*;
 
-import java.util.*;
+import java.util.List;
+
+import static ru.yandex.practicum.filmorate.validation.UserHandleMessages.ERROR_ID_IS_NULL;
+import static ru.yandex.practicum.filmorate.validation.UserHandleMessages.ERROR_ID_NOT_FOUND;
 
 @Slf4j
 @Service
 public class UserService {
+
     private final UserStorage userStorage;
 
-    public UserService(UserStorage userStorage) {
+    public UserService(@Qualifier("userDbStorage") UserStorage userStorage) {
         this.userStorage = userStorage;
     }
 
-    public Collection<User> findAll() {
+    public List<UserDto> findAll() {
         log.debug("Service: findAll usersCount={}", userStorage.findAll().size());
-        return userStorage.findAll();
+        return userStorage.findAll().stream()
+                .map(UserMapper::mapToUserDto)
+                .toList();
     }
 
-    public User add(User user) {
+    @Transactional
+    public UserDto add(NewUserRequest request) {
         log.info("Service: add user login='{}', email='{}', birthday={}",
-                user.getLogin(), user.getEmail(), user.getBirthday());
+                request.getLogin(), request.getEmail(), request.getBirthday());
 
+        User user = UserMapper.mapToUser(request);
         normalizeName(user);
 
         User created = userStorage.add(user);
 
         log.info("Service: user created id={}, login='{}'", created.getId(), created.getLogin());
-        return created;
+        return UserMapper.mapToUserDto(created);
     }
 
-    public User findById(Long id) {
+    public UserDto findById(Long id) {
         log.debug("Service: findById id={}", id);
         return userStorage.findById(id)
+                .map(UserMapper::mapToUserDto)
                 .orElseThrow(() -> new NotFoundException(ERROR_ID_NOT_FOUND + id));
     }
 
-    public User update(User newUser) {
-        Long id = newUser.getId();
-        log.info("Service: update user id={}, login='{}'", id, newUser.getLogin());
+    @Transactional
+    public UserDto update(Long userId, UpdateUserRequest request) {
+        if (userId == null) {
+            throw new ValidationException(ERROR_ID_IS_NULL);
+        }
 
-        User oldUser = userStorage.findById(id)
-                .orElseThrow(() -> new NotFoundException(ERROR_ID_NOT_FOUND + id));
+        log.info("Service: update user id={}, login='{}'", userId, request.getLogin());
 
-        normalizeName(newUser);
-        setUserFields(oldUser, newUser);
+        User oldUser = userStorage.findById(userId)
+                .orElseThrow(() -> new NotFoundException(ERROR_ID_NOT_FOUND + userId));
+
+        UserMapper.updateUserFields(oldUser, request);
+        normalizeName(oldUser);
 
         User updated = userStorage.update(oldUser);
 
         log.info("Service: user updated id={}, login='{}'", updated.getId(), updated.getLogin());
-        return updated;
+        return UserMapper.mapToUserDto(updated);
     }
 
+    @Transactional
     public void addFriend(Long userId, Long friendId) {
         log.debug("Service: addFriend userId={}, friendId={}", userId, friendId);
 
@@ -68,6 +88,7 @@ public class UserService {
         log.info("Service: friendship added userId={}, friendId={}", userId, friendId);
     }
 
+    @Transactional
     public void removeFriend(Long userId, Long friendId) {
         log.debug("Service: removeFriend userId={}, friendId={}", userId, friendId);
 
@@ -79,25 +100,23 @@ public class UserService {
         log.info("Service: friendship removed userId={}, friendId={}", userId, friendId);
     }
 
-    public List<User> getFriends(Long userId) {
+    public List<UserDto> getFriends(Long userId) {
         log.debug("Service: getFriends userId={}", userId);
-
         checkUserId(userId);
 
-        var friends = userStorage.getFriends(userId);
-        log.info("Service: getFriends userId={} count={}", userId, friends.size());
-        return friends;
+        return userStorage.getFriends(userId).stream()
+                .map(UserMapper::mapToUserDto)
+                .toList();
     }
 
-    public List<User> getCommonFriends(Long userId, Long friendId) {
+    public List<UserDto> getCommonFriends(Long userId, Long friendId) {
         log.debug("Service: getCommonFriends userId={}, otherId={}", userId, friendId);
-
         checkUserId(userId);
         checkUserId(friendId);
 
-        var common = userStorage.getCommonFriends(userId, friendId);
-        log.info("Service: getCommonFriends userId={} otherId={} count={}", userId, friendId, common.size());
-        return common;
+        return userStorage.getCommonFriends(userId, friendId).stream()
+                .map(UserMapper::mapToUserDto)
+                .toList();
     }
 
     private void checkUserId(Long userId) {
@@ -109,16 +128,7 @@ public class UserService {
 
     private void normalizeName(User user) {
         if (user.getName() == null || user.getName().isBlank()) {
-            log.debug("Service: normalizeName: name is blank -> set from login, login='{}'", user.getLogin());
             user.setName(user.getLogin());
         }
     }
-
-    private void setUserFields(User oldUser, User newUser) {
-        oldUser.setEmail(newUser.getEmail());
-        oldUser.setLogin(newUser.getLogin());
-        oldUser.setName(newUser.getName());
-        oldUser.setBirthday(newUser.getBirthday());
-    }
-
 }
